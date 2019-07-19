@@ -47,7 +47,7 @@ mkTreeStore (TreeWidgetConfig columns) tree = do
   
 mkTreeView :: forall t a. IsTree t a => TreeWidgetConfig a -> t -> IO TreeView
 mkTreeView cfg@(TreeWidgetConfig columns) tree = do
-    store <- mkTreeStore cfg tree
+    store <- treeModelSortNewWithModel =<< mkTreeStore cfg tree
     view <- treeViewNewWithModel store
     treeViewSetHeadersVisible view True
     forM_ (zip [0..] columns) $ \(i, column) ->
@@ -63,6 +63,7 @@ mkTreeView cfg@(TreeWidgetConfig columns) tree = do
         treeViewColumnAddAttribute column renderer propName i
         set column [ #resizable := True ]
         treeViewColumnSetSizing column TreeViewColumnSizingFixed
+        treeViewColumnSetSortColumnId column i
         treeViewAppendColumn view column
 
     withRenderer :: ColumnType -> (forall r. IsCellRenderer r => r -> IO x) -> IO x
