@@ -5,43 +5,54 @@ import qualified Data.Text as T
 
 import Data.GI.Base.GValue
 import GI.Gtk hiding (main)
+import GI.Gtk.Structs.TreePath
 
-iterChildren :: TreeModel -> TreeIter -> (TreeIter -> IO (Maybe a)) -> IO (Maybe a)
+iterChildren :: TreeModel
+             -> TreeIter  -- ^ Root
+             -> (TreeIter -> IO (Bool, [a])) -- ^ Should return (whether to stop iterations; result)
+             -> IO [a]
 iterChildren store parent func = do
     (hasFirst, first) <- treeModelIterChildren store (Just parent)
     if not hasFirst
-      then return Nothing
+      then return []
       else go first
   where
     go iter = do
-      mbResult <- func iter
-      case mbResult of
-        Just result -> return (Just result)
-        Nothing -> do
+      (stop, results) <- func iter
+      if stop
+        then return results
+        else do
           hasNext <- treeModelIterNext store iter
           if hasNext
-            then go iter
-            else return Nothing
+            then do
+                 rest <- go iter
+                 return $ results ++ rest
+            else return results
 
-iterChildrenR :: TreeModel -> TreeIter -> (TreeIter -> IO (Maybe a)) -> IO (Maybe a)
-iterChildrenR store parent func =
-  iterChildren store parent $ \child -> do
-    mbResult <- func child
-    case mbResult of
-      Just result -> return (Just result)
-      Nothing -> iterChildrenR store child func
+iterChildrenR :: TreeModel -> TreeIter -> (TreeIter -> IO (Bool, [a])) -> IO [a]
+iterChildrenR store parent func = do
+  childResults <- iterChildren store parent $ \child -> do
+        (stop, result) <- func child
+        if stop
+          then return (True, [result])
+          else do
+               rest <- iterChildrenR store child func
+               return (False, [result ++ rest])
+  return $ concat childResults
 
-locate :: TreeView -> T.Text -> IO (Maybe TreeIter)
-locate view needle = do
+treeSearch :: TreeView -> T.Text -> IO [TreePath]
+treeSearch view needle = do
     Just store <- treeViewGetModel view
     (hasFirst, first) <- treeModelGetIterFirst store
     if not hasFirst
-      then return Nothing
+      then return []
       else iterChildrenR store first $ \child -> do
               found <- checkValue store child
               if found
-                then return (Just child)
-                else return Nothing
+                then do
+                  path <- treeModelGetPath store child
+                  return (False, [path])
+                else return (False, [])
   where
     checkValue store row = do
       mbValue <- fromGValue =<< treeModelGetValue store row 1
