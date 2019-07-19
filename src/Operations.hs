@@ -6,6 +6,7 @@ import qualified Data.Text as T
 import Data.Int
 import Data.Tree
 import qualified Data.Map as M
+import Data.Scientific
 
 import Types
 
@@ -68,41 +69,63 @@ filterCcd good node = node {ccdChildren = go (ccdChildren node)}
 
 timeIndividual :: Profile -> CostCentreData -> Double
 timeIndividual p node =
-  100 * prTicks (ccdRecord node) // profileTotalTicks p
+  case prTimeIndividual (ccdRecord node) of
+    Just value -> value
+    Nothing ->
+      case prTicks (ccdRecord node) of
+        Nothing -> error "no individual time percentage and no ticks data provided"
+        Just ticks -> 100 * ticks // profileTotalTicks p
 
 ccdTimeIndividual :: CostCentreData -> Double
 ccdTimeIndividual ccd = timeIndividual (ccdProfile ccd) ccd
 
 allocIndividual :: Profile -> CostCentreData -> Double
 allocIndividual p node =
-  100 * prAlloc (ccdRecord node) // profileTotalAlloc p
+  case prAllocIndividual (ccdRecord node) of
+    Just value -> value
+    Nothing ->
+      case prAlloc (ccdRecord node) of
+        Nothing -> error "no individual alloc percentage and no bytes data provided"
+        Just bytes -> 100 * bytes // profileTotalAlloc p
 
 ccdAllocIndividual :: CostCentreData -> Double
 ccdAllocIndividual ccd = allocIndividual (ccdProfile ccd) ccd
 
 timeInherited :: Profile -> CostCentreData -> Double
-timeInherited p node = 100 * inheritedSum node // profileTotalTicks p
+timeInherited p node =
+    case prTimeInherited (ccdRecord node) of
+      Just value -> value
+      Nothing -> 100 * inheritedSum node // profileTotalTicks p
   where
     inheritedSum node =
-      prTicks (ccdRecord node) + sum (map inheritedSum $ ccdChildren node)
+      case prTicks (ccdRecord node) of
+        Nothing -> error "no inherited time percentage and no ticks data provided"
+        Just ticks -> ticks + sum (map inheritedSum $ ccdChildren node)
 
-ticksInherited :: Profile -> CostCentreData -> Int64
+ticksInherited :: Profile -> CostCentreData -> Maybe Integer
 ticksInherited p node = inheritedSum node
   where
-    inheritedSum node =
-      prTicks (ccdRecord node) + sum (map inheritedSum $ ccdChildren node)
+    inheritedSum node = do
+      individual <- prTicks (ccdRecord node) 
+      children <- mapM inheritedSum $ ccdChildren node
+      return $ individual + sum children
 
 ccdTimeInherited :: CostCentreData -> Double
 ccdTimeInherited ccd = timeInherited (ccdProfile ccd) ccd
 
-ccdTicksInherited :: CostCentreData -> Int64
+ccdTicksInherited :: CostCentreData -> Maybe Integer
 ccdTicksInherited ccd = ticksInherited (ccdProfile ccd) ccd
 
 allocInherited :: Profile -> CostCentreData -> Double
-allocInherited p node = 100 * inheritedSum node // profileTotalAlloc p
+allocInherited p node =
+    case prAllocInherited (ccdRecord node) of
+      Just value -> value
+      Nothing -> 100 * inheritedSum node // profileTotalAlloc p
   where
     inheritedSum node =
-      prAlloc (ccdRecord node) + sum (map inheritedSum $ ccdChildren node)
+      case prAlloc (ccdRecord node) of
+        Nothing -> error "no inherited alloc percentage and no bytes data provided"
+        Just bytes -> bytes + sum (map inheritedSum $ ccdChildren node)
 
 ccdAllocInherited :: CostCentreData -> Double
 ccdAllocInherited ccd = allocInherited (ccdProfile ccd) ccd
@@ -128,27 +151,30 @@ ccdToIgnore = withCostCentre $ \cc -> ccIsCaf cc || ccLabel cc `elem` [
     "IDLE"
   ]
 
-ccdEntries :: CostCentreData -> Int64
+ccdEntries :: CostCentreData -> Integer
 ccdEntries ccd = prEntries (ccdRecord ccd)
 
-calcTotals :: CostCentreData -> (Int64, Int64)
+calcTotals :: CostCentreData -> Maybe (Integer, Integer)
 calcTotals ccd = calc ccd
   where
-    calc node =
-      let (childTicks_s, childAlloc_s) = unzip $ map calc $ ccdChildren node
-      in (prTicks (ccdRecord node) + sum childTicks_s,
-          prAlloc (ccdRecord node) + sum childAlloc_s)
+    calc node = do
+      (childTicks_s, childAlloc_s) <- unzip <$> mapM calc (ccdChildren node)
+      ticks <- prTicks (ccdRecord node) 
+      alloc <- prAlloc (ccdRecord node) 
+      return (ticks + sum childTicks_s, alloc + sum childAlloc_s)
 
 updateTotals :: CostCentreData -> CostCentreData
 updateTotals node =
-  let (totalTicks, totalAlloc) = calcTotals node
-      profile' = (ccdProfile node) {
-                     profileTotalTicks = totalTicks,
-                     profileTotalAlloc = totalAlloc
-                  }
-      updateCcd ccd = ccd {
-                        ccdProfile = profile',
-                        ccdChildren = map updateCcd (ccdChildren ccd)
+  case calcTotals node of
+    Nothing -> node
+    Just (totalTicks, totalAlloc) ->
+      let profile' = (ccdProfile node) {
+                         profileTotalTicks = totalTicks,
+                         profileTotalAlloc = totalAlloc
                       }
-  in  updateCcd node
+          updateCcd ccd = ccd {
+                            ccdProfile = profile',
+                            ccdChildren = map updateCcd (ccdChildren ccd)
+                          }
+      in  updateCcd node
           

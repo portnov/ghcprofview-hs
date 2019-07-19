@@ -24,6 +24,7 @@ import System.Environment
 import Types
 import Operations
 import Json
+import Loader
 import TreeWidget
 
 treeWidgetConfig :: TreeWidgetConfig CostCentreData
@@ -40,13 +41,6 @@ treeWidgetConfig = TreeWidgetConfig
     Column "Source" gtypeString TextColumn (toGValue . Just . ccdSource)
   ]
       
-
-loadJson :: FilePath -> IO CostCentreData
-loadJson path = do
-  r <- eitherDecodeFileStrict path
-  case r of
-    Left err -> fail err
-    Right profile -> return $ resolveProfile profile
 
 iterChildren :: TreeModel -> TreeIter -> (TreeIter -> IO (Maybe a)) -> IO (Maybe a)
 iterChildren store parent func = do
@@ -131,7 +125,7 @@ printTree node = go 0 node
 main :: IO ()
 main = do
   [path] <- getArgs
-  treeData <- loadJson path
+  treeData <- loadProfile path
   let treeData' = updateTotals $ filterCcd (not . ccdToIgnore) treeData
   print $ profileTotalTicks $ ccdProfile treeData'
   printTree treeData'

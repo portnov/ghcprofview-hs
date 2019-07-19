@@ -9,6 +9,7 @@ import qualified Data.Map as M
 import Data.Tree
 
 import Types
+import Json.Types
 
 instance FromJSON Profile where
   parseJSON = withObject "profile" $ \v -> do
@@ -46,9 +47,13 @@ parseTree :: Value -> Parser (Tree ProfileRecord)
 parseTree = withObject "record" $ \v -> do
   root <- ProfileRecord
             <$> v .: "id"
-            <*> v .: "ticks"
             <*> v .: "entries"
+            <*> v .: "ticks"
             <*> v .: "alloc"
+            <*> return Nothing
+            <*> return Nothing
+            <*> return Nothing
+            <*> return Nothing
   children <- explicitParseField (listParser parseTree) v "children"
   return $ Node root children
 

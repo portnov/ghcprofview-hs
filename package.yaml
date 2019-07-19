@@ -24,6 +24,8 @@ dependencies:
 - containers
 - text
 - aeson
+- scientific
+- ghc-prof
 - haskell-gi-base
 - gi-gtk
 
