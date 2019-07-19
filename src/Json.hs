@@ -2,14 +2,12 @@
 
 module Json where
 
-import Control.Applicative
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Map as M
 import Data.Tree
 
 import Types
-import Json.Types
 
 instance FromJSON Profile where
   parseJSON = withObject "profile" $ \v -> do

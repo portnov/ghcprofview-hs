@@ -3,10 +3,9 @@ module Operations where
 
 import Control.Monad
 import qualified Data.Text as T
-import Data.Int
+import qualified Data.Text.IO as TIO
 import Data.Tree
 import qualified Data.Map as M
-import Data.Scientific
 
 import Types
 
@@ -178,3 +177,15 @@ updateTotals node =
                           }
       in  updateCcd node
           
+printTree :: CostCentreData -> IO ()
+printTree node = go 0 node
+  where
+    go i node = do
+      let prefix = T.replicate i " "
+      TIO.putStrLn $ prefix <>
+          ccdLabel node <> "\t"
+          <> T.pack (show $ ccdTicksInherited node) <> "\t"
+          <> T.pack (show $ ccdTimeInherited node)
+      forM_ (ccdChildren node) $ \child ->
+        go (i+1) child
+

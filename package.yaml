@@ -36,5 +36,6 @@ executables:
     ghc-options:
     - -threaded
     - -rtsopts
+    - -fwarn-unused-imports
     - -with-rtsopts=-N
     - -O2

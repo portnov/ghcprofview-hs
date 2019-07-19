@@ -5,11 +5,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module TreeWidget where
+module Gui.TreeWidget where
 
 import Control.Monad
-import Data.Tree as Tree
-import Data.Int
 import qualified Data.Text as T
 
 import Data.GI.Base.GType
