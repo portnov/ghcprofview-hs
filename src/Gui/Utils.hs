@@ -3,6 +3,7 @@ module Gui.Utils where
 
 import Control.Monad
 import qualified Data.Text as T
+import Data.IORef
 
 import Data.GI.Base.GValue
 import GI.Gtk hiding (main)
@@ -65,4 +66,24 @@ withSelected :: TreeView -> (TreeModel -> TreeIter -> IO ()) -> IO ()
 withSelected tree fn = do
     (isSelected, store, selected) <- treeSelectionGetSelected =<< treeViewGetSelection tree
     when isSelected $ fn store selected
+
+getTruePath :: TreeModel -> TreeIter -> IO TreePath
+getTruePath top iter = do
+  Just sorted <- castTo TreeModelSort top
+  Just filtered <- castTo TreeModelFilter =<< treeModelSortGetModel sorted
+
+  topPath <- treeModelGetPath top iter
+
+  Just filteredPath <- treeModelSortConvertPathToChildPath sorted topPath
+  Just truePath <- treeModelFilterConvertPathToChildPath filtered filteredPath
+
+  return truePath
+
+type FilterParams = Double
+
+treeFilterFunc :: IORef FilterParams -> TreeModelFilterVisibleFunc
+treeFilterFunc paramsRef store row = do
+    bound <- readIORef paramsRef
+    time <- fromGValue =<< treeModelGetValue store row 5
+    return (time >= bound)
 

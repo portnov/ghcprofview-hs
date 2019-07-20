@@ -41,7 +41,7 @@ mkContextMenu tree ccd showTree = do
 
   mkItem menu "Focus" $ do
     withSelected tree $ \store selected -> do
-      path <- treeModelGetPath store selected
+      path <- getTruePath store selected
       Just idxs <- treePathGetIndices path
       case ccdByPath idxs ccd of
         Nothing -> return ()
@@ -62,24 +62,35 @@ mkContextMenu tree ccd showTree = do
 
 mkPage :: Statusbar -> T.Text -> CostCentreData -> ShowTree -> IO Page
 mkPage status label ccd showTree = do
-  vbox <- boxNew OrientationVertical 10
-  hbox <- boxNew OrientationHorizontal 0
+  vbox <- boxNew OrientationVertical 0
+  searchHbox <- boxNew OrientationHorizontal 0
+  filterBox <- boxNew OrientationHorizontal 0
 
   entry <- searchEntryNew
-  boxPackStart hbox entry True True 0
+  boxPackStart searchHbox entry True True 0
   searchButton <- buttonNewWithLabel "Search"
   searchNextButton <- buttonNewWithLabel "Next"
-  boxPackStart hbox searchButton False False 0
-  boxPackStart hbox searchNextButton False False 0
-  boxPackStart vbox hbox False False 0
+  boxPackStart searchHbox searchButton False False 0
+  boxPackStart searchHbox searchNextButton False False 0
+  boxPackStart vbox searchHbox False False 0
 
-  tree <- mkTreeView treeWidgetConfig ccd
+  fltrTimeInherited <- spinButtonNewWithRange 0 100 1
+  filterButton <- buttonNewWithLabel "Filter"
+  resetFilterButton <- buttonNewWithLabel "Reset"
+
+  boxPackStart filterBox fltrTimeInherited True True 0
+  boxPackStart filterBox filterButton False False 0
+  boxPackStart filterBox resetFilterButton False False 0
+  boxPackStart vbox filterBox False False 0
+
+  filterParams <- newIORef 0
+  (tree, filtered) <- mkTreeView (treeWidgetConfig filterParams) ccd
   treeViewSetSearchColumn tree 1
   treeViewSetEnableSearch tree False
   let noAdjustment = Nothing :: Maybe Adjustment
   scroll <- scrolledWindowNew noAdjustment noAdjustment
   containerAdd scroll tree
-  boxPackStart vbox scroll True True 0
+  boxPackStart vbox scroll True True 10
 
   statusContext <- statusbarGetContextId status label
 
@@ -114,6 +125,15 @@ mkPage status label ccd showTree = do
         writeIORef searchResults (index, results)
         treeViewExpandToPath tree path
         treeViewSetCursor tree path (Nothing :: Maybe TreeViewColumn) False
+
+  on filterButton #clicked $ do
+    bound <- spinButtonGetValue fltrTimeInherited
+    writeIORef filterParams bound
+    treeModelFilterRefilter filtered
+
+  on resetFilterButton #clicked $ do
+    writeIORef filterParams 0
+    treeModelFilterRefilter filtered
 
   on tree #buttonPressEvent $ \ev -> do
     button <- get ev #button

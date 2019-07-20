@@ -28,10 +28,14 @@ data Column a = Column {
   , columnData :: a -> IO GValue
   }
 
-newtype TreeWidgetConfig a = TreeWidgetConfig [Column a]
+data TreeWidgetConfig a = TreeWidgetConfig {
+        twcColumns :: [Column a]
+      , twcFilterFunc :: TreeModelFilterVisibleFunc
+      }
 
-mkTreeStore :: forall a t. IsTree t a => TreeWidgetConfig a -> t -> IO TreeStore
-mkTreeStore (TreeWidgetConfig columns) tree = do
+mkTreeStore :: forall a t . IsTree t a => TreeWidgetConfig a -> t -> IO TreeStore
+mkTreeStore cfg tree = do
+    let columns = twcColumns cfg
     let gtypes = map columnGType columns
     store <- treeStoreNew gtypes
     fill store Nothing tree
@@ -41,18 +45,23 @@ mkTreeStore (TreeWidgetConfig columns) tree = do
     fill store root node = do
       let cc = treeRoot node
       item <- treeStoreInsert store root (negate 1)
-      forM_ (zip [0..] columns) $ \(i, column) ->
+      forM_ (zip [0..] (twcColumns cfg)) $ \(i, column) ->
           treeStoreSetValue store item i =<< columnData column cc
       forM_ (treeChildren node) $ fill store (Just item)
   
-mkTreeView :: forall t a. IsTree t a => TreeWidgetConfig a -> t -> IO TreeView
-mkTreeView cfg@(TreeWidgetConfig columns) tree = do
-    store <- treeModelSortNewWithModel =<< mkTreeStore cfg tree
+mkTreeView :: forall t a . IsTree t a => TreeWidgetConfig a -> t -> IO (TreeView, TreeModelFilter)
+mkTreeView cfg@(TreeWidgetConfig columns filterFunc) tree = do
+    srcStore <- mkTreeStore cfg tree
+    Just filtered <- castTo TreeModelFilter =<< treeModelFilterNew srcStore Nothing
+    store <- treeModelSortNewWithModel filtered
     view <- treeViewNewWithModel store
     treeViewSetHeadersVisible view True
     forM_ (zip [0..] columns) $ \(i, column) ->
       addColumn view i (columnType column) (columnTitle column)
-    return view
+
+    treeModelFilterSetVisibleFunc filtered filterFunc
+
+    return (view, filtered)
   where
     addColumn view i ctype title = do
       column <- treeViewColumnNew
