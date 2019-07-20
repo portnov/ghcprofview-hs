@@ -60,8 +60,8 @@ mkContextMenu tree ccd showTree = do
       
   return menu
 
-mkPage :: CostCentreData -> ShowTree -> IO Page
-mkPage ccd showTree = do
+mkPage :: Statusbar -> T.Text -> CostCentreData -> ShowTree -> IO Page
+mkPage status label ccd showTree = do
   vbox <- boxNew OrientationVertical 10
   hbox <- boxNew OrientationHorizontal 0
 
@@ -81,16 +81,21 @@ mkPage ccd showTree = do
   containerAdd scroll tree
   boxPackStart vbox scroll True True 0
 
+  statusContext <- statusbarGetContextId status label
+
   searchResults <- newIORef (0, [])
+
+  let message text =
+        void $ statusbarPush status statusContext (T.pack text)
 
   on searchButton #clicked $ do
     text <- entryGetText entry
     unless (T.null text) $ do
       results <- treeSearch tree text
       if null results
-        then print "not found"
+        then message "Not found."
         else do
-          print $ "found: " ++ show (length results)
+          message $ "Found: " ++ show (length results)
           writeIORef searchResults (0, results)
           Just store <- treeViewGetModel tree
           let path = head results
@@ -100,12 +105,12 @@ mkPage ccd showTree = do
   on searchNextButton #clicked $ do
     (prevIndex, results) <- readIORef searchResults
     if null results
-      then print "not found"
+      then message "Not found."
       else do
         let n = length results
             index = (prevIndex + 1) `mod` n
             path = results !! index
-        print $ "found: " ++ show index ++ "/" ++ show n
+        message $ "Found: " ++ show index ++ "/" ++ show n
         writeIORef searchResults (index, results)
         treeViewExpandToPath tree path
         treeViewSetCursor tree path (Nothing :: Maybe TreeViewColumn) False

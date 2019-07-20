@@ -31,18 +31,22 @@ main = do
 
   -- Sets the border width of the window.
   setContainerBorderWidth window 10
+  vbox <- boxNew OrientationVertical 0
 
   notebook <- notebookNew
+  status <- statusbarNew
 
   let showTree label ccd = do
-        page <- pageWidget `fmap` mkPage ccd showTree
+        page <- pageWidget `fmap` mkPage status label ccd showTree
         widgetShowAll page
         notebookAppendPage notebook page noWidget
         notebookSetTabLabelText notebook page label
 
   showTree "All" treeData'
 
-  setContainerChild window notebook
+  boxPackStart vbox notebook True True 0
+  boxPackStart vbox status False False 0
+  setContainerChild window vbox
 
 
   -- The final step is to display everything (the window and all the widgets
