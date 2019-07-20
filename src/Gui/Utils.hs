@@ -1,6 +1,7 @@
 
 module Gui.Utils where
 
+import Control.Monad
 import qualified Data.Text as T
 
 import Data.GI.Base.GValue
@@ -59,4 +60,9 @@ treeSearch view needle = do
       case mbValue of
         Nothing -> return False -- not ok
         Just value -> return $ needle `T.isInfixOf` value
+
+withSelected :: TreeView -> (TreeModel -> TreeIter -> IO ()) -> IO ()
+withSelected tree fn = do
+    (isSelected, store, selected) <- treeSelectionGetSelected =<< treeViewGetSelection tree
+    when isSelected $ fn store selected
 

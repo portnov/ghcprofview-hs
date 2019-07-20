@@ -3,10 +3,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 module Main (main) where
 
-import Control.Monad
-import qualified Data.Text as T
-import Data.IORef
-
 import qualified GI.Gtk as GI (main, init)
 import GI.Gtk hiding (main)
 
@@ -15,17 +11,16 @@ import System.Environment
 import Types
 import Operations
 import Loader
-import Gui
-import Gui.TreeWidget
-import Gui.Utils
+import Gui.Page
 
 main :: IO ()
 main = do
   [path] <- getArgs
   treeData <- loadProfile path
   let treeData' = updateTotals $ filterCcd (not . ccdToIgnore) treeData
-  print $ profileTotalTicks $ ccdProfile treeData'
+--   print $ profileTotalTicks $ ccdProfile treeData'
 --   printTree treeData'
+--   print $ ccdLabel `fmap` ccdByPath [0, 20] treeData'
 
   GI.init Nothing
 
@@ -38,55 +33,19 @@ main = do
   -- Sets the border width of the window.
   setContainerBorderWidth window 10
 
-  vbox <- boxNew OrientationVertical 10
-  hbox <- boxNew OrientationHorizontal 10
+  notebook <- notebookNew
 
-  entry <- searchEntryNew
-  boxPackStart hbox entry True True 0
-  searchButton <- buttonNewWithLabel "Search"
-  searchNextButton <- buttonNewWithLabel "Next"
-  boxPackStart hbox searchButton False False 0
-  boxPackStart hbox searchNextButton False False 0
-  boxPackStart vbox hbox False False 0
+  let showTree label ccd = do
+        print label
+        page <- pageWidget `fmap` mkPage ccd showTree
+        widgetShowAll page
+        notebookAppendPage notebook page noWidget
+        notebookSetTabLabelText notebook page label
 
-  tree <- mkTreeView treeWidgetConfig treeData'
-  treeViewSetSearchColumn tree 1
-  treeViewSetEnableSearch tree False
-  let noAdjustment = Nothing :: Maybe Adjustment
-  scroll <- scrolledWindowNew noAdjustment noAdjustment
-  containerAdd scroll tree
-  boxPackStart vbox scroll True True 0
+  showTree "All" treeData'
 
-  searchResults <- newIORef (0, [])
+  setContainerChild window notebook
 
-  on searchButton #clicked $ do
-    text <- entryGetText entry
-    unless (T.null text) $ do
-      results <- treeSearch tree text
-      if null results
-        then print "not found"
-        else do
-          print $ "found: " ++ show (length results)
-          writeIORef searchResults (0, results)
-          Just store <- treeViewGetModel tree
-          let path = head results
-          treeViewExpandToPath tree path
-          treeViewSetCursor tree path (Nothing :: Maybe TreeViewColumn) False
-
-  on searchNextButton #clicked $ do
-    (prevIndex, results) <- readIORef searchResults
-    if null results
-      then print "not found"
-      else do
-        let n = length results
-            index = (prevIndex + 1) `mod` n
-            path = results !! index
-        print $ "found: " ++ show index ++ "/" ++ show n
-        writeIORef searchResults (index, results)
-        treeViewExpandToPath tree path
-        treeViewSetCursor tree path (Nothing :: Maybe TreeViewColumn) False
-
-  setContainerChild window vbox
 
   -- The final step is to display everything (the window and all the widgets
   -- contained within it)

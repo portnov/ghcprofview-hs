@@ -7,6 +7,7 @@ import Control.Monad
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Tree
+import Data.Int
 import qualified Data.Map as M
 import qualified Data.IntMap as IM
 import qualified Data.IntSet as IS
@@ -192,7 +193,7 @@ ccdLabel :: CostCentreData -> T.Text
 ccdLabel = withCostCentre ccLabel
 
 ccdRecordIds :: CostCentreData -> String
-ccdRecordIds ccd = show $ map singleRecordId (ccdRecords ccd)
+ccdRecordIds ccd = show $ concatMap listRecordId (ccdRecords ccd)
 
 ccdModule :: CostCentreData -> T.Text
 ccdModule = withCostCentre ccModule
@@ -247,6 +248,25 @@ ccdFind mod src label ccd = self ++ children
       | otherwise = []
     
     children = concatMap (ccdFind mod src label) (ccdChildren ccd)
+
+ccdByIdStr :: String -> CostCentreData -> Maybe CostCentreData
+ccdByIdStr idStr ccd
+      | ccdRecordIds ccd == idStr = Just ccd
+      | otherwise = go (ccdChildren ccd)
+  where
+    go [] = Nothing
+    go (child : children) =
+      case ccdByIdStr idStr child of
+        Just found -> Just found
+        Nothing -> go children
+
+ccdByPath :: [Int32] -> CostCentreData -> Maybe CostCentreData
+ccdByPath path ccd = go (tail path) ccd
+  where
+    go [] ccd = Just ccd
+    go (ix : ixs) ccd
+      | fromIntegral ix >= length (ccdChildren ccd) = Nothing
+      | otherwise = go ixs (ccdChildren ccd !! fromIntegral ix)
           
 printTree :: CostCentreData -> IO ()
 printTree node = go 0 node

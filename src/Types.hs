@@ -80,6 +80,10 @@ data ProfileRecord s = ProfileRecord {
 singleRecordId :: ProfileRecord Individual -> Id
 singleRecordId r@(ProfileRecord {prCcId = IndividualId id}) = id
 
+listRecordId :: ProfileRecord a -> [Id]
+listRecordId (ProfileRecord {prCcId = IndividualId id}) = [id]
+listRecordId (ProfileRecord {prCcId = AggregatedId set}) = IS.toList set
+
 data Profile = Profile {
     profileProgram :: ! T.Text
   , profileTotalTime :: ! Double

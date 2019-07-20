@@ -48,7 +48,7 @@ convertProfile p = Profile {
     , profileTickInterval = 0
     , profileTotalAlloc = P.totalAllocBytes $ P.profileTotalAlloc p
     , profileTotalTicks = P.totalTimeTicks $ P.profileTotalTime p
-    , profileTree = undefined
+    , profileTree = error "profile tree was not read from .prof file"
     , profileTreeMap = IM.empty
     , profileCostCentres = IM.empty
   }
