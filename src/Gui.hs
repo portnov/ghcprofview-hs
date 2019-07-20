@@ -14,7 +14,7 @@ import Gui.TreeWidget
 treeWidgetConfig :: TreeWidgetConfig CostCentreData
 treeWidgetConfig = TreeWidgetConfig 
   [
-    Column "No" gtypeInt TextColumn (toGValue . ccdRecordId),
+    Column "No" gtypeInt TextColumn (toGValue . Just . ccdRecordIds),
     Column "Name" gtypeString TextColumn (toGValue . Just . ccdLabel),
     Column "Entries" gtypeInt TextColumn (toGValue . ccdEntries),
     Column "Individual Time" gtypeDouble PercentColumn (toGValue . ccdTimeIndividual),

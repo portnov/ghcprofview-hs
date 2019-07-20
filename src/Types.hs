@@ -1,17 +1,36 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
 
 module Types where
 
 import qualified Data.Text as T
 import Data.Int
 import Data.Tree
-import qualified Data.Map as M
+import qualified Data.IntMap as IM
+import qualified Data.IntSet as IS
 import Data.Scientific
 -- import Data.Typeable
 import Data.GI.Base.GValue
 
 type Id = Int
+
+class IsTree t a | t -> a where
+  treeRoot :: t -> a
+  treeChildren :: t -> [t]
+
+data AggregateState = Individual | Aggregated
+  deriving (Eq, Show)
+
+data RecordId (a :: AggregateState) where
+  IndividualId :: Id -> RecordId Individual
+  AggregatedId :: IS.IntSet -> RecordId Aggregated
+
+instance Show (RecordId a) where
+  show (IndividualId id) = show id
+  show (AggregatedId set) = show set
 
 instance IsGValue Int where
   toGValue x = toGValue (fromIntegral x :: Int64)
@@ -27,16 +46,11 @@ instance IsGValue Scientific where
 
 data CostCentreData = CostCentreData {
     ccdProfile :: ! Profile
-  , ccdRecordId :: ! Id
-  , ccdRecord :: ! ProfileRecord
+  , ccdRecords :: ! [ProfileRecord Individual]
   , ccdCostCentre :: ! CostCentre
   , ccdChildren :: ! [CostCentreData]
   }
-  deriving (Eq, Show)
-
-class IsTree t a | t -> a where
-  treeRoot :: t -> a
-  treeChildren :: t -> [t]
+  deriving (Show)
 
 instance IsTree CostCentreData CostCentreData where
   treeRoot = id
@@ -51,8 +65,8 @@ data CostCentre = CostCentre {
   }
   deriving (Eq, Show)
 
-data ProfileRecord = ProfileRecord {
-    prCcId :: ! Id
+data ProfileRecord s = ProfileRecord {
+    prCcId :: ! (RecordId s)
   , prEntries :: ! Integer
   , prTicks :: ! (Maybe Integer)             -- ^ If present in input file
   , prAlloc :: ! (Maybe Integer)             -- ^ If present in input file
@@ -61,7 +75,10 @@ data ProfileRecord = ProfileRecord {
   , prTimeInherited :: ! (Maybe Double) -- ^ If present in input file
   , prAllocInherited :: ! (Maybe Double) -- ^ If present in input file
   }
-  deriving (Eq, Show)
+  deriving (Show)
+
+singleRecordId :: ProfileRecord Individual -> Id
+singleRecordId r@(ProfileRecord {prCcId = IndividualId id}) = id
 
 data Profile = Profile {
     profileProgram :: ! T.Text
@@ -71,9 +88,9 @@ data Profile = Profile {
   , profileTickInterval :: ! Int32
   , profileTotalAlloc :: ! Integer
   , profileTotalTicks :: ! Integer
-  , profileTree :: Tree ProfileRecord
-  , profileTreeMap :: M.Map Id (Tree ProfileRecord)
-  , profileCostCentres :: M.Map Id CostCentre
+  , profileTree :: Tree (ProfileRecord Individual)
+  , profileTreeMap :: IM.IntMap (Tree (ProfileRecord Individual))
+  , profileCostCentres :: IM.IntMap CostCentre
   }
-  deriving (Eq, Show)
+  deriving (Show)
 

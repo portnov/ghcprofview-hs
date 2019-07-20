@@ -7,6 +7,7 @@ import Data.Tree
 import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Map as M
+import qualified Data.IntMap as IM
 import Data.Scientific
 
 import Types
@@ -16,9 +17,9 @@ convertCc profile node =
   let cc = rootLabel node
   in CostCentreData {
         ccdProfile = convertProfile profile
-      , ccdRecordId = P.costCentreNo cc
-      , ccdRecord = ProfileRecord {
-                        prCcId = P.costCentreNo cc
+      , ccdRecords = [
+            ProfileRecord {
+                        prCcId = IndividualId $ P.costCentreNo cc
                       , prEntries = P.costCentreEntries cc
                       , prTicks = P.costCentreTicks cc
                       , prAlloc = P.costCentreBytes cc
@@ -27,6 +28,7 @@ convertCc profile node =
                       , prTimeInherited = Just $ toRealFloat $ P.costCentreInhTime cc
                       , prAllocInherited = Just $ toRealFloat $ P.costCentreInhAlloc cc
                     }
+          ]
       , ccdCostCentre = CostCentre {
                             ccLabel = P.costCentreName cc
                           , ccId = P.costCentreNo cc
@@ -47,7 +49,7 @@ convertProfile p = Profile {
     , profileTotalAlloc = P.totalAllocBytes $ P.profileTotalAlloc p
     , profileTotalTicks = P.totalTimeTicks $ P.profileTotalTime p
     , profileTree = undefined
-    , profileTreeMap = M.empty
-    , profileCostCentres = M.empty
+    , profileTreeMap = IM.empty
+    , profileCostCentres = IM.empty
   }
 

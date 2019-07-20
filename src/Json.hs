@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
 
 module Json where
 
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Map as M
+import qualified Data.IntMap as IM
 import Data.Tree
 
 import Types
@@ -34,17 +36,17 @@ instance FromJSON Profile where
                 costCentres
 
     where
-      mkMap list = M.fromList [(ccId r, r) | r <- list]
+      mkMap list = IM.fromList [(ccId r, r) | r <- list]
 
-      mkTreeMap node = M.fromList $ mkTreePairs node
+      mkTreeMap node = IM.fromList $ mkTreePairs node
 
       mkTreePairs node =
-        (prCcId $ rootLabel node, node) : concatMap mkTreePairs (subForest node)
+        (singleRecordId $ rootLabel node, node) : concatMap mkTreePairs (subForest node)
 
-parseTree :: Value -> Parser (Tree ProfileRecord)
+parseTree :: Value -> Parser (Tree (ProfileRecord Individual))
 parseTree = withObject "record" $ \v -> do
   root <- ProfileRecord
-            <$> v .: "id"
+            <$> (IndividualId <$> v .: "id")
             <*> v .: "entries"
             <*> v .: "ticks"
             <*> v .: "alloc"

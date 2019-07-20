@@ -8,7 +8,7 @@ import qualified GHC.Prof as P -- from ghc-prof package
 import Types
 import Converter
 import Operations
-import Json
+import Json () -- instances only
 
 loadProfile :: FilePath -> IO CostCentreData
 loadProfile path = do
