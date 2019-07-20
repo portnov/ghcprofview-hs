@@ -8,7 +8,6 @@ import GI.Gtk hiding (main)
 
 import System.Environment
 
-import Types
 import Operations
 import Loader
 import Gui.Page
@@ -36,7 +35,6 @@ main = do
   notebook <- notebookNew
 
   let showTree label ccd = do
-        print label
         page <- pageWidget `fmap` mkPage ccd showTree
         widgetShowAll page
         notebookAppendPage notebook page noWidget

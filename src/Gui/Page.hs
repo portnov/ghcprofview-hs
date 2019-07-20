@@ -48,6 +48,15 @@ mkContextMenu tree ccd showTree = do
         Just child -> do
           let label = ccdLabel child
           showTree ("Focus: " <> label) child
+
+  mkItem menu "Group outgoing calls" $
+    withSelected tree $ \store selected -> do
+      Just name <- fromGValue =<< treeModelGetValue store selected 1
+      Just mod <- fromGValue =<< treeModelGetValue store selected 7
+      Just src <- fromGValue =<< treeModelGetValue store selected 8
+      let subtrees = ccdFind mod src name ccd
+          result = ccdSum subtrees
+      showTree ("Outgoing calls: " <> name) result
       
   return menu
 
