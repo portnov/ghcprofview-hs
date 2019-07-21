@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RecordWildCards #-}
 module Operations where
 
 import Control.Monad
@@ -123,8 +124,30 @@ filterCcd good node = node {ccdChildren = go (ccdChildren node)}
     go (node : nodes)
       | good node =
         let node' = node {ccdChildren = go (ccdChildren node)}
-        in  node' : nodes
+        in  node' : go nodes
       | otherwise = go nodes
+
+filterCcdRecursive :: (CostCentreData -> Bool) -> CostCentreData -> CostCentreData
+filterCcdRecursive check node = node {ccdChildren = go (ccdChildren node)}
+  where
+    go [] = []
+    go (node : nodes)
+      | check node =
+        let node' = node {ccdChildren = go (ccdChildren node)}
+        in  node' : go nodes
+      | otherwise =
+        let children' = go (ccdChildren node)
+            node' = node {ccdChildren = children'}
+        in  if null children'
+              then go nodes
+              else node' : go nodes
+
+ccdCheckRecursive :: (CostCentreData -> Bool) -> CostCentreData -> Bool
+ccdCheckRecursive check ccd = go ccd
+  where
+    go ccd
+      | check ccd = True
+      | otherwise = any go (ccdChildren ccd)
 
 timeIndividual :: Profile -> CostCentreData -> Double
 timeIndividual p node =
@@ -267,6 +290,16 @@ ccdByPath path ccd = go (tail path) ccd
     go (ix : ixs) ccd
       | fromIntegral ix >= length (ccdChildren ccd) = Nothing
       | otherwise = go ixs (ccdChildren ccd !! fromIntegral ix)
+
+checkFilter :: FilterParams -> CostCentreData -> Bool
+checkFilter (FilterParams {..}) ccd =
+    ccdEntries ccd >= fpEntries &&
+    ccdTimeIndividual ccd >= fpTimeIndividual &&
+    ccdAllocIndividual ccd >= fpAllocIndividual &&
+    ccdTimeInherited ccd >= fpTimeInherited &&
+    ccdAllocInherited ccd >= fpAllocInherited &&
+    fpSource `T.isInfixOf` ccdSource ccd &&
+    fpModule `T.isInfixOf` ccdModule ccd
           
 printTree :: CostCentreData -> IO ()
 printTree node = go 0 node

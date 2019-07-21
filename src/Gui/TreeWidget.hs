@@ -28,9 +28,8 @@ data Column a = Column {
   , columnData :: a -> IO GValue
   }
 
-data TreeWidgetConfig a = TreeWidgetConfig {
+newtype TreeWidgetConfig a = TreeWidgetConfig {
         twcColumns :: [Column a]
-      , twcFilterFunc :: TreeModelFilterVisibleFunc
       }
 
 mkTreeStore :: forall a t . IsTree t a => TreeWidgetConfig a -> t -> IO TreeStore
@@ -49,19 +48,16 @@ mkTreeStore cfg tree = do
           treeStoreSetValue store item i =<< columnData column cc
       forM_ (treeChildren node) $ fill store (Just item)
   
-mkTreeView :: forall t a . IsTree t a => TreeWidgetConfig a -> t -> IO (TreeView, TreeModelFilter)
-mkTreeView cfg@(TreeWidgetConfig columns filterFunc) tree = do
+mkTreeView :: forall t a . IsTree t a => TreeWidgetConfig a -> t -> IO TreeView
+mkTreeView cfg@(TreeWidgetConfig columns) tree = do
     srcStore <- mkTreeStore cfg tree
-    Just filtered <- castTo TreeModelFilter =<< treeModelFilterNew srcStore Nothing
-    store <- treeModelSortNewWithModel filtered
+    store <- treeModelSortNewWithModel srcStore
     view <- treeViewNewWithModel store
     treeViewSetHeadersVisible view True
     forM_ (zip [0..] columns) $ \(i, column) ->
       addColumn view i (columnType column) (columnTitle column)
 
-    treeModelFilterSetVisibleFunc filtered filterFunc
-
-    return (view, filtered)
+    return view
   where
     addColumn view i ctype title = do
       column <- treeViewColumnNew

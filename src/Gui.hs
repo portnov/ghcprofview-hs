@@ -13,13 +13,13 @@ import Operations
 import Gui.TreeWidget
 import Gui.Utils
 
-treeWidgetConfig :: IORef FilterParams -> TreeWidgetConfig CostCentreData
-treeWidgetConfig filterParams =
+treeWidgetConfig :: TreeWidgetConfig CostCentreData
+treeWidgetConfig =
   TreeWidgetConfig {
       twcColumns = [
           Column "No" gtypeString TextColumn (toGValue . Just . ccdRecordIds),
           Column "Name" gtypeString TextColumn (toGValue . Just . ccdLabel),
-          Column "Entries" gtypeInt TextColumn (toGValue . ccdEntries),
+          Column "Entries" gtypeInt64 TextColumn (toGValue . ccdEntries),
           Column "Individual Time" gtypeDouble PercentColumn (toGValue . ccdTimeIndividual),
           Column "Individual Alloc" gtypeDouble PercentColumn (toGValue . ccdAllocIndividual),
           Column "Inherited Time" gtypeDouble PercentColumn (toGValue . ccdTimeInherited),
@@ -27,7 +27,5 @@ treeWidgetConfig filterParams =
           Column "Module" gtypeString TextColumn (toGValue . Just . ccdModule),
           Column "Source" gtypeString TextColumn (toGValue . Just . ccdSource)
         ]
-    , twcFilterFunc = treeFilterFunc filterParams
   }
-      
 

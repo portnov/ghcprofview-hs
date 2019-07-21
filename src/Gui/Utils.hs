@@ -1,13 +1,16 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 module Gui.Utils where
 
 import Control.Monad
 import qualified Data.Text as T
+import Data.Int
 import Data.IORef
 
 import Data.GI.Base.GValue
 import GI.Gtk hiding (main)
-import GI.Gtk.Structs.TreePath
+
+import Types
 
 iterChildren :: TreeModel
              -> TreeIter  -- ^ Root
@@ -62,6 +65,17 @@ treeSearch view needle = do
         Nothing -> return False -- not ok
         Just value -> return $ needle `T.isInfixOf` value
 
+treeCheck :: TreeModel -> (TreeIter -> IO Bool) -> IO Bool
+treeCheck store check = or <$> do
+    (hasFirst, first) <- treeModelGetIterFirst store
+    if not hasFirst
+      then return []
+      else iterChildrenR store first $ \child -> do
+              found <- check child
+              if found
+                then return (True, [True])
+                else return (False, [])
+
 withSelected :: TreeView -> (TreeModel -> TreeIter -> IO ()) -> IO ()
 withSelected tree fn = do
     (isSelected, store, selected) <- treeSelectionGetSelected =<< treeViewGetSelection tree
@@ -79,11 +93,32 @@ getTruePath top iter = do
 
   return truePath
 
-type FilterParams = Double
+defFilterParams :: FilterParams
+defFilterParams = FilterParams 0 0 0 0 0 "" ""
+
+getItem :: IsGValue a => TreeModel -> TreeIter -> Int32 -> IO a
+getItem store row col = 
+    fromGValue =<< treeModelGetValue store row col
 
 treeFilterFunc :: IORef FilterParams -> TreeModelFilterVisibleFunc
 treeFilterFunc paramsRef store row = do
-    bound <- readIORef paramsRef
-    time <- fromGValue =<< treeModelGetValue store row 5
-    return (time >= bound)
+    params <- readIORef paramsRef
+    hasChild <- treeModelIterHasChild store row
+    good <- do
+        entries <- getItem store row 2 :: IO Integer
+        timeIndividual <- getItem store row 3
+        allocIndividual <- getItem store row 4
+        timeInherited <- getItem store row 5
+        allocInherited <- getItem store row 6
+        Just mod <- getItem store row 7
+        Just src <- getItem store row 8
+        return $
+            entries >= fpEntries params &&
+            timeIndividual >= fpTimeIndividual params &&
+            allocIndividual >= fpAllocIndividual params &&
+            timeInherited >= fpTimeInherited params &&
+            allocInherited >= fpAllocInherited params &&
+            fpModule params `T.isInfixOf` mod &&
+            fpSource params `T.isInfixOf` src
+    return $ hasChild || good
 

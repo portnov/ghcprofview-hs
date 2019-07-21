@@ -74,17 +74,43 @@ mkPage status label ccd showTree = do
   boxPackStart searchHbox searchNextButton False False 0
   boxPackStart vbox searchHbox False False 0
 
-  fltrTimeInherited <- spinButtonNewWithRange 0 100 1
-  filterButton <- buttonNewWithLabel "Filter"
-  resetFilterButton <- buttonNewWithLabel "Reset"
+  let addFilterPercent name = do
+        lbl <- labelNew (Just name)
+        spin <- spinButtonNewWithRange 0 100 1
+        spinButtonSetDigits spin 2
+        boxPackStart filterBox lbl False False 10
+        boxPackStart filterBox spin True True 0
+        return spin
 
-  boxPackStart filterBox fltrTimeInherited True True 0
+  let addFilterNumber name = do
+        lbl <- labelNew (Just name)
+        spin <- spinButtonNewWithRange 0 (1e38) 1
+        spinButtonSetDigits spin 0
+        boxPackStart filterBox lbl False False 10
+        boxPackStart filterBox spin True True 0
+        return spin
+
+  let addFilterText name = do
+        lbl <- labelNew (Just name)
+        entry <- entryNew
+        boxPackStart filterBox lbl False False 10
+        boxPackStart filterBox entry True True 0
+        return entry
+
+  fltrEntries <- addFilterNumber "Entries:"
+  fltrTimeIndividual <- addFilterPercent "Time Individual:"
+  fltrAllocIndividual <- addFilterPercent "Alloc Individual:"
+  fltrTimeInherited <- addFilterPercent "Time Inherited:"
+  fltrAllocInherited <- addFilterPercent "Alloc Inherited:"
+  fltrModule <- addFilterText "Module:"
+  fltrSource <- addFilterText "Source:"
+
+  filterButton <- buttonNewWithLabel "Filter"
+
   boxPackStart filterBox filterButton False False 0
-  boxPackStart filterBox resetFilterButton False False 0
   boxPackStart vbox filterBox False False 0
 
-  filterParams <- newIORef 0
-  (tree, filtered) <- mkTreeView (treeWidgetConfig filterParams) ccd
+  tree <- mkTreeView treeWidgetConfig ccd
   treeViewSetSearchColumn tree 1
   treeViewSetEnableSearch tree False
   let noAdjustment = Nothing :: Maybe Adjustment
@@ -127,13 +153,25 @@ mkPage status label ccd showTree = do
         treeViewSetCursor tree path (Nothing :: Maybe TreeViewColumn) False
 
   on filterButton #clicked $ do
-    bound <- spinButtonGetValue fltrTimeInherited
-    writeIORef filterParams bound
-    treeModelFilterRefilter filtered
+    entries <- spinButtonGetValueAsInt fltrEntries
+    timeIndividual <- spinButtonGetValue fltrTimeIndividual
+    allocIndividual <- spinButtonGetValue fltrAllocIndividual
+    timeInherited <- spinButtonGetValue fltrTimeInherited
+    allocInherited <- spinButtonGetValue fltrAllocInherited
+    mod <- entryGetText fltrModule
+    src <- entryGetText fltrSource
 
-  on resetFilterButton #clicked $ do
-    writeIORef filterParams 0
-    treeModelFilterRefilter filtered
+    let params = FilterParams {
+          fpEntries = fromIntegral entries
+        , fpTimeIndividual = timeIndividual
+        , fpAllocIndividual = allocIndividual
+        , fpTimeInherited = timeInherited
+        , fpAllocInherited = allocInherited
+        , fpModule = mod
+        , fpSource = src
+      }
+    let ccd' = filterCcdRecursive (checkFilter params) ccd
+    showTree "Filtered" ccd'
 
   on tree #buttonPressEvent $ \ev -> do
     button <- get ev #button

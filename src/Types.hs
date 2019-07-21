@@ -98,3 +98,13 @@ data Profile = Profile {
   }
   deriving (Show)
 
+data FilterParams = FilterParams {
+        fpEntries :: Integer
+      , fpTimeIndividual :: Double
+      , fpAllocIndividual :: Double
+      , fpTimeInherited :: Double
+      , fpAllocInherited :: Double
+      , fpModule :: T.Text
+      , fpSource :: T.Text
+    }
+
