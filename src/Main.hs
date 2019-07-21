@@ -31,7 +31,7 @@ main = do
   onWidgetDestroy window mainQuit
 
   -- Sets the border width of the window.
---   setContainerBorderWidth window 10
+  setContainerBorderWidth window 10
   vbox <- boxNew OrientationVertical 0
 
   notebook <- notebookNew
@@ -53,7 +53,6 @@ main = do
   boxPackStart vbox notebook True True 0
   boxPackStart vbox status False False 0
   setContainerChild window vbox
-
 
   -- The final step is to display everything (the window and all the widgets
   -- contained within it)

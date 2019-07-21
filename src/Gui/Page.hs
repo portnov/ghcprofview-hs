@@ -27,18 +27,18 @@ mkContextMenu :: TreeView -> CostCentreData -> ShowTree -> IO Menu
 mkContextMenu tree ccd showTree = do
   menu <- menuNew
 
-  mkMenuItem menu "Test" $ do
-    withSelected tree $ \store selected -> do
-      Just name <- getItem store selected nameColumn
-      print (name :: T.Text)
-      Just mod <- getItem store selected moduleColumn
-      Just src <- getItem store selected sourceColumn
-      let subtrees = ccdFind mod src name ccd
-      forM_ subtrees $ \child -> do
-        let parent = case ccdParent child of
-                       Nothing -> "no parent"
-                       Just parent -> T.pack (ccdRecordIds parent) <> ": " <> ccdLabel parent <> " = " <> T.pack (show $ ccdTimeInherited parent)
-        print $ T.pack (ccdRecordIds child) <> ": " <> ccdLabel child <> " = " <> T.pack (show $ ccdTimeInherited child) <> " => " <> parent
+--   mkMenuItem menu "Test" $ do
+--     withSelected tree $ \store selected -> do
+--       Just name <- getItem store selected nameColumn
+--       print (name :: T.Text)
+--       Just mod <- getItem store selected moduleColumn
+--       Just src <- getItem store selected sourceColumn
+--       let subtrees = ccdFind mod src name ccd
+--       forM_ subtrees $ \child -> do
+--         let parent = case ccdParent child of
+--                        Nothing -> "no parent"
+--                        Just parent -> T.pack (ccdRecordIds parent) <> ": " <> ccdLabel parent <> " = " <> T.pack (show $ ccdTimeInherited parent)
+--         print $ T.pack (ccdRecordIds child) <> ": " <> ccdLabel child <> " = " <> T.pack (show $ ccdTimeInherited child) <> " => " <> parent
 
   mkMenuItem menu "Narrow view to this item" $ do
     withSelected tree $ \store selected -> do
@@ -90,6 +90,8 @@ mkPage status label ccd showTree = do
   boxPackStart searchHbox searchNextButton False False 0
   boxPackStart searchHbox searchMethodCombo False False 0
   boxPackStart vbox searchHbox False False 0
+
+  on entry #activate $ buttonClicked searchButton
 
   let addFilterPercent name = do
         lbl <- labelNew (Just name)
