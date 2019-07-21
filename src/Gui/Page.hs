@@ -70,8 +70,15 @@ mkPage status label ccd showTree = do
   boxPackStart searchHbox entry True True 0
   searchButton <- buttonNewWithLabel "Search"
   searchNextButton <- buttonNewWithLabel "Next"
+  searchMethodCombo <- mkComboBox [
+                           (Contains, "Contains")
+                         , (Exact, "Exact")
+                         , (Regexp, "Reg.Exp")
+                       ]
+
   boxPackStart searchHbox searchButton False False 0
   boxPackStart searchHbox searchNextButton False False 0
+  boxPackStart searchHbox searchMethodCombo False False 0
   boxPackStart vbox searchHbox False False 0
 
   let addFilterPercent name = do
@@ -128,7 +135,9 @@ mkPage status label ccd showTree = do
   on searchButton #clicked $ do
     text <- entryGetText entry
     unless (T.null text) $ do
-      results <- treeSearch tree text
+      Just methodId <- comboBoxGetActiveId searchMethodCombo
+      let method = read $ T.unpack methodId
+      results <- treeSearch tree method text
       if null results
         then message "Not found."
         else do

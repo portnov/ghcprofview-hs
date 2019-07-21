@@ -6,6 +6,8 @@ import Control.Monad
 import qualified Data.Text as T
 import Data.Int
 import Data.IORef
+import Text.Regex.TDFA
+import Text.Regex.TDFA.Text () -- instances only
 
 import Data.GI.Base.GValue
 import GI.Gtk hiding (main)
@@ -45,8 +47,8 @@ iterChildrenR store parent func = do
                return (False, [result ++ rest])
   return $ concat childResults
 
-treeSearch :: TreeView -> T.Text -> IO [TreePath]
-treeSearch view needle = do
+treeSearch :: TreeView -> SearchMetohd -> T.Text -> IO [TreePath]
+treeSearch view method needle = do
     Just store <- treeViewGetModel view
     (hasFirst, first) <- treeModelGetIterFirst store
     if not hasFirst
@@ -63,7 +65,11 @@ treeSearch view needle = do
       mbValue <- fromGValue =<< treeModelGetValue store row 1
       case mbValue of
         Nothing -> return False -- not ok
-        Just value -> return $ needle `T.isInfixOf` value
+        Just value ->
+          case method of
+            Contains -> return $ needle `T.isInfixOf` value
+            Exact -> return $ needle == value
+            Regexp -> return $ value =~ needle
 
 treeCheck :: TreeModel -> (TreeIter -> IO Bool) -> IO Bool
 treeCheck store check = or <$> do
@@ -121,4 +127,13 @@ treeFilterFunc paramsRef store row = do
             fpModule params `T.isInfixOf` mod &&
             fpSource params `T.isInfixOf` src
     return $ hasChild || good
+
+mkComboBox :: (Show a) => [(a, T.Text)] -> IO ComboBoxText
+mkComboBox pairs = do
+  combo <- comboBoxTextNew
+  forM_ pairs $ \(value, title) -> do
+    let id = T.pack (show value)
+    comboBoxTextAppend combo (Just id) title
+  comboBoxSetActive combo 0
+  return combo
 

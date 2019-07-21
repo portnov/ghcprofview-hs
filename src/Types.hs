@@ -108,3 +108,6 @@ data FilterParams = FilterParams {
       , fpSource :: T.Text
     }
 
+data SearchMetohd = Contains | Exact | Regexp
+  deriving (Eq, Show, Read, Enum, Bounded)
+

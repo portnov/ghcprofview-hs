@@ -25,6 +25,8 @@ dependencies:
 - text
 - aeson
 - scientific
+- regex-tdfa
+- regex-tdfa-text
 - ghc-prof
 - haskell-gi-base
 - gi-gtk
