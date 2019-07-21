@@ -27,6 +27,19 @@ mkContextMenu :: TreeView -> CostCentreData -> ShowTree -> IO Menu
 mkContextMenu tree ccd showTree = do
   menu <- menuNew
 
+  mkMenuItem menu "Test" $ do
+    withSelected tree $ \store selected -> do
+      Just name <- getItem store selected nameColumn
+      print (name :: T.Text)
+      Just mod <- getItem store selected moduleColumn
+      Just src <- getItem store selected sourceColumn
+      let subtrees = ccdFind mod src name ccd
+      forM_ subtrees $ \child -> do
+        let parent = case ccdParent child of
+                       Nothing -> "no parent"
+                       Just parent -> T.pack (ccdRecordIds parent) <> ": " <> ccdLabel parent <> " = " <> T.pack (show $ ccdTimeInherited parent)
+        print $ T.pack (ccdRecordIds child) <> ": " <> ccdLabel child <> " = " <> T.pack (show $ ccdTimeInherited child) <> " => " <> parent
+
   mkMenuItem menu "Narrow view to this item" $ do
     withSelected tree $ \store selected -> do
       path <- getTruePath store selected
@@ -39,18 +52,18 @@ mkContextMenu tree ccd showTree = do
 
   mkMenuItem menu "Group all outgoing calls" $
     withSelected tree $ \store selected -> do
-      Just name <- fromGValue =<< treeModelGetValue store selected 1
-      Just mod <- fromGValue =<< treeModelGetValue store selected 7
-      Just src <- fromGValue =<< treeModelGetValue store selected 8
+      Just name <- getItem store selected nameColumn
+      Just mod <- getItem store selected moduleColumn
+      Just src <- getItem store selected sourceColumn
       let subtrees = ccdFind mod src name ccd
           result = ccdSum subtrees
       showTree ("Calls of " <> name) result
 
   mkMenuItem menu "Group all incoming calls" $
     withSelected tree $ \store selected -> do
-      Just name <- fromGValue =<< treeModelGetValue store selected 1
-      Just mod <- fromGValue =<< treeModelGetValue store selected 7
-      Just src <- fromGValue =<< treeModelGetValue store selected 8
+      Just name <- getItem store selected nameColumn
+      Just mod <- getItem store selected moduleColumn
+      Just src <- getItem store selected sourceColumn
       let subtrees = ccdFindIncoming mod src name ccd
           result = ccdSum subtrees
       showTree ("Calls to " <> name) result

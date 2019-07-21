@@ -16,6 +16,8 @@ import qualified Data.IntSet as IS
 
 import Types
 
+-- import Debug.Trace
+
 (//) :: (Integral a, Fractional b) => a -> a -> b
 x // y = fromIntegral x / fromIntegral y
 
@@ -88,22 +90,33 @@ ccdId :: CostCentreData -> (T.Text, T.Text, T.Text)
 ccdId ccd = (ccdModule ccd, ccdSource ccd, ccdLabel ccd)
 
 ccdPlus :: CostCentreData -> CostCentreData -> CostCentreData
-ccdPlus c1 c2 = c1 {
-                    ccdRecords = addRecords (ccdRecords c1) (ccdRecords c2)
-                  , ccdChildren = addChildren (ccdChildren c1) (ccdChildren c2)
-                }
+ccdPlus c1 c2 = go (addParent (ccdParent c1) (ccdParent c2)) c1 c2
   where
+    
+    go parent c1 c2 =
+      let result = c1 {
+                    ccdParent = parent
+                  , ccdRecords = addRecords (ccdRecords c1) (ccdRecords c2)
+                  , ccdChildren = addChildren result (ccdChildren c1) (ccdChildren c2)
+                }
+      in  result
+
+    addParent Nothing Nothing = Nothing
+    addParent (Just p) Nothing = Just p
+    addParent Nothing (Just q) = Just q
+    addParent (Just p) (Just q) = Just (ccdPlus p q)
+
     addRecords rs1 rs2 =
       let ids1 = IS.fromList (map singleRecordId rs1)
           rs2' = filter (\r -> singleRecordId r `IS.notMember` ids1) rs2
       in  rs1 ++ rs2'
 
-    addChildren cs1 cs2 =
+    addChildren parent cs1 cs2 =
       let zero :: M.Map (T.Text, T.Text, T.Text) CostCentreData
           zero = M.fromList [(ccdId c, c) | c <- cs1]
 
           plus :: CostCentreData -> M.Map (T.Text, T.Text, T.Text) CostCentreData -> M.Map (T.Text, T.Text, T.Text) CostCentreData
-          plus c result = M.insertWith ccdPlus (ccdId c) c result
+          plus c result = M.insertWith (go (Just parent)) (ccdId c) c result
       in  M.elems $ foldr plus zero cs2
 
 ccdSum :: [CostCentreData] -> CostCentreData
@@ -214,6 +227,39 @@ allocInherited p node =
 ccdAllocInherited :: CostCentreData -> Double
 ccdAllocInherited ccd = allocInherited (ccdProfile ccd) ccd
 
+ccdTimeRelative :: CostCentreData -> Double
+ccdTimeRelative ccd =
+  case ccdParent ccd of
+    Nothing -> 0
+    Just parent ->
+      let parentTime = ccdTimeInherited parent
+          thisTime = ccdTimeInherited ccd
+          result =
+              if thisTime <= parentTime
+                then if parentTime <= 1e-4
+                       then 0
+                       else 100 * thisTime / parentTime
+                else if thisTime <= 1e-4
+                       then 0
+                       else 100 * parentTime / thisTime
+      in  -- trace (T.unpack (ccdLabel ccd) ++ ": this: " ++ show thisTime ++ ", parent: " ++ show parentTime ++ ", result = " ++ show result)
+            result
+
+ccdAllocRelative :: CostCentreData -> Double
+ccdAllocRelative ccd =
+  case ccdParent ccd of
+    Nothing -> 0
+    Just parent ->
+      let parentAlloc = ccdAllocInherited parent
+          thisAlloc = ccdAllocInherited ccd
+      in  if thisAlloc <= parentAlloc
+            then if parentAlloc <= 1e-4
+                   then 0
+                   else 100 * thisAlloc / parentAlloc
+            else if thisAlloc <= 1e-4
+                   then 0
+                   else 100 * parentAlloc / thisAlloc
+
 ccdLabel :: CostCentreData -> T.Text
 ccdLabel = withCostCentre ccLabel
 
@@ -266,13 +312,16 @@ updateTotals node =
       in  updateCcd node
 
 ccdFind :: T.Text -> T.Text -> T.Text -> CostCentreData -> [CostCentreData]
-ccdFind mod src label ccd = self ++ children
+ccdFind mod src label ccd = go Nothing ccd
   where
-    self
-      | ccdId ccd == (mod, src, label) = [ccd]
+    go parent ccd = self parent ccd ++ children parent ccd
+
+    self parent ccd
+      | ccdId ccd == (mod, src, label) = [ccd {ccdParent = parent}]
       | otherwise = []
     
-    children = concatMap (ccdFind mod src label) (ccdChildren ccd)
+    children parent ccd =
+        concatMap (go (Just ccd)) (ccdChildren ccd)
 
 ccdFindIncoming :: T.Text -> T.Text -> T.Text -> CostCentreData -> [CostCentreData]
 ccdFindIncoming mod src label ccd = map (reverseTree Nothing) $ ccdFind mod src label ccd
