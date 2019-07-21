@@ -26,12 +26,8 @@ type ShowTree = T.Text -> CostCentreData -> IO ()
 mkContextMenu :: TreeView -> CostCentreData -> ShowTree -> IO Menu
 mkContextMenu tree ccd showTree = do
   menu <- menuNew
-  mkMenuItem menu "Test" $ do
-    withSelected tree $ \store selected -> do
-      Just value <- fromGValue =<< treeModelGetValue store selected 1
-      print (value :: T.Text)
 
-  mkMenuItem menu "Focus" $ do
+  mkMenuItem menu "Narrow view to this item" $ do
     withSelected tree $ \store selected -> do
       path <- getTruePath store selected
       Just idxs <- treePathGetIndices path
@@ -39,16 +35,25 @@ mkContextMenu tree ccd showTree = do
         Nothing -> return ()
         Just child -> do
           let label = ccdLabel child
-          showTree ("Focus: " <> label) child
+          showTree ("Narrowed view: " <> label) child
 
-  mkMenuItem menu "Group outgoing calls" $
+  mkMenuItem menu "Group all outgoing calls" $
     withSelected tree $ \store selected -> do
       Just name <- fromGValue =<< treeModelGetValue store selected 1
       Just mod <- fromGValue =<< treeModelGetValue store selected 7
       Just src <- fromGValue =<< treeModelGetValue store selected 8
       let subtrees = ccdFind mod src name ccd
           result = ccdSum subtrees
-      showTree ("Outgoing calls: " <> name) result
+      showTree ("Calls of " <> name) result
+
+  mkMenuItem menu "Group all incoming calls" $
+    withSelected tree $ \store selected -> do
+      Just name <- fromGValue =<< treeModelGetValue store selected 1
+      Just mod <- fromGValue =<< treeModelGetValue store selected 7
+      Just src <- fromGValue =<< treeModelGetValue store selected 8
+      let subtrees = ccdFindIncoming mod src name ccd
+          result = ccdSum subtrees
+      showTree ("Calls to " <> name) result
       
   return menu
 

@@ -91,13 +91,8 @@ withSelected tree fn = do
 getTruePath :: TreeModel -> TreeIter -> IO TreePath
 getTruePath top iter = do
   Just sorted <- castTo TreeModelSort top
-  Just filtered <- castTo TreeModelFilter =<< treeModelSortGetModel sorted
-
   topPath <- treeModelGetPath top iter
-
-  Just filteredPath <- treeModelSortConvertPathToChildPath sorted topPath
-  Just truePath <- treeModelFilterConvertPathToChildPath filtered filteredPath
-
+  Just truePath <- treeModelSortConvertPathToChildPath sorted topPath
   return truePath
 
 defFilterParams :: FilterParams

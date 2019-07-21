@@ -9,6 +9,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Tree
 import Data.Int
+import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.IntMap as IM
 import qualified Data.IntSet as IS
@@ -272,6 +273,14 @@ ccdFind mod src label ccd = self ++ children
       | otherwise = []
     
     children = concatMap (ccdFind mod src label) (ccdChildren ccd)
+
+ccdFindIncoming :: T.Text -> T.Text -> T.Text -> CostCentreData -> [CostCentreData]
+ccdFindIncoming mod src label ccd = map (reverseTree Nothing) $ ccdFind mod src label ccd
+  where
+    reverseTree parent ccd =
+      let children = map (reverseTree (Just root)) $ maybeToList $ ccdParent ccd
+          root = ccd {ccdParent = parent, ccdChildren = children}
+      in  root
 
 ccdByIdStr :: String -> CostCentreData -> Maybe CostCentreData
 ccdByIdStr idStr ccd
