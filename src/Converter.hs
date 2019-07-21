@@ -13,31 +13,36 @@ import Data.Scientific
 import Types
 
 convertCc :: P.Profile -> Tree P.CostCentre -> CostCentreData
-convertCc profile node =
-  let cc = rootLabel node
-  in CostCentreData {
-        ccdProfile = convertProfile profile
-      , ccdRecords = [
-            ProfileRecord {
-                        prCcId = IndividualId $ P.costCentreNo cc
-                      , prEntries = P.costCentreEntries cc
-                      , prTicks = P.costCentreTicks cc
-                      , prAlloc = P.costCentreBytes cc
-                      , prTimeIndividual = Just $ toRealFloat $ P.costCentreIndTime cc
-                      , prAllocIndividual = Just $ toRealFloat $ P.costCentreIndAlloc cc
-                      , prTimeInherited = Just $ toRealFloat $ P.costCentreInhTime cc
-                      , prAllocInherited = Just $ toRealFloat $ P.costCentreInhAlloc cc
-                    }
-          ]
-      , ccdCostCentre = CostCentre {
-                            ccLabel = P.costCentreName cc
-                          , ccId = P.costCentreNo cc
-                          , ccModule = P.costCentreModule cc
-                          , ccSource = fromMaybe "<unknown>" $ P.costCentreSrc cc
-                          , ccIsCaf = "CAF:" `T.isPrefixOf` P.costCentreName cc
+convertCc profile node = go Nothing node
+  where
+    profile' = convertProfile profile
+    go parent node =
+      let cc = rootLabel node
+          ccd = CostCentreData {
+            ccdProfile = profile'
+          , ccdParent = parent
+          , ccdRecords = [
+                ProfileRecord {
+                            prCcId = IndividualId $ P.costCentreNo cc
+                          , prEntries = P.costCentreEntries cc
+                          , prTicks = P.costCentreTicks cc
+                          , prAlloc = P.costCentreBytes cc
+                          , prTimeIndividual = Just $ toRealFloat $ P.costCentreIndTime cc
+                          , prAllocIndividual = Just $ toRealFloat $ P.costCentreIndAlloc cc
+                          , prTimeInherited = Just $ toRealFloat $ P.costCentreInhTime cc
+                          , prAllocInherited = Just $ toRealFloat $ P.costCentreInhAlloc cc
                         }
-      , ccdChildren = map (convertCc profile) (subForest node)
-    }
+              ]
+          , ccdCostCentre = CostCentre {
+                                ccLabel = P.costCentreName cc
+                              , ccId = P.costCentreNo cc
+                              , ccModule = P.costCentreModule cc
+                              , ccSource = fromMaybe "<unknown>" $ P.costCentreSrc cc
+                              , ccIsCaf = "CAF:" `T.isPrefixOf` P.costCentreName cc
+                            }
+          , ccdChildren = map (go (Just ccd)) (subForest node)
+        }
+      in  ccd
 
 convertProfile :: P.Profile -> Profile
 convertProfile p = Profile {

@@ -46,6 +46,7 @@ instance IsGValue Scientific where
 
 data CostCentreData = CostCentreData {
     ccdProfile :: ! Profile
+  , ccdParent :: Maybe CostCentreData
   , ccdRecords :: ! [ProfileRecord Individual]
   , ccdCostCentre :: ! CostCentre
   , ccdChildren :: ! [CostCentreData]

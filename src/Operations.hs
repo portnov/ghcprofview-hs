@@ -25,16 +25,17 @@ fromSingletonSet set =
     else error "fromSingletonSet for a non-singleton set"
 
 resolveProfile :: Profile -> CostCentreData
-resolveProfile p = go (profileTree p)
+resolveProfile p = go Nothing (profileTree p)
   where
-    go node =
+    go parent node =
       let root = CostCentreData {
                      ccdProfile = p
+                   , ccdParent = parent
                    , ccdRecords = [rootLabel node]
                    , ccdCostCentre = cc
                    , ccdChildren = children
                   }
-          children = map go (subForest node)
+          children = map (go (Just root)) (subForest node)
           IndividualId id = prCcId (rootLabel node)
           Just cc = IM.lookup id (profileCostCentres p)
       in  root
