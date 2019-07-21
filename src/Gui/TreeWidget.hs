@@ -74,10 +74,12 @@ mkTreeView cfg@(TreeWidgetConfig columns) tree = do
       button <- treeViewColumnGetButton column
       on button #buttonPressEvent $ \ev -> do
         button <- get ev #button
-        when (button == 3) $ do
-          menu <- mkColumnsMenu view
-          menuPopupAtPointer menu Nothing
-        return True
+        if button == 3
+          then do
+              menu <- mkColumnsMenu view
+              menuPopupAtPointer menu Nothing
+              return True
+          else return False
 
     withRenderer :: ColumnType -> (forall r. IsCellRenderer r => r -> IO x) -> IO x
     withRenderer TextColumn f = cellRendererTextNew >>= f
