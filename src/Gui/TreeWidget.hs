@@ -71,6 +71,14 @@ mkTreeView cfg@(TreeWidgetConfig columns) tree = do
         treeViewColumnSetSortColumnId column i
         treeViewAppendColumn view column
 
+      button <- treeViewColumnGetButton column
+      on button #buttonPressEvent $ \ev -> do
+        button <- get ev #button
+        when (button == 3) $ do
+          menu <- mkColumnsMenu view
+          menuPopupAtPointer menu Nothing
+        return True
+
     withRenderer :: ColumnType -> (forall r. IsCellRenderer r => r -> IO x) -> IO x
     withRenderer TextColumn f = cellRendererTextNew >>= f
     withRenderer PercentColumn f = cellRendererProgressNew >>= f
@@ -78,4 +86,18 @@ mkTreeView cfg@(TreeWidgetConfig columns) tree = do
     getPropName TextColumn = "text"
     getPropName PercentColumn = "value"
 
+mkColumnsMenu :: TreeView -> IO Menu
+mkColumnsMenu tree = do
+    menu <- menuNew
+    columns <- treeViewGetColumns tree
+    forM_ (zip [0..] columns) $ \(i, column) -> do
+      title <- treeViewColumnGetTitle column
+      item <- checkMenuItemNewWithLabel title
+      menuShellAppend menu item
+      widgetShow item
+      visible <- treeViewColumnGetVisible column
+      checkMenuItemSetActive item visible
+      on item #activate $ do
+        treeViewColumnSetVisible column (not visible)
+    return menu
 

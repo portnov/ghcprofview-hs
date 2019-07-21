@@ -23,23 +23,15 @@ data Page = Page {
 
 type ShowTree = T.Text -> CostCentreData -> IO ()
 
-mkItem :: Menu -> T.Text -> MenuItemActivateCallback -> IO ()
-mkItem menu label callback = do
-  item <- menuItemNewWithLabel label
-  menuShellAppend menu item
-  on item #activate callback
-  widgetShow item
-  return ()
-
 mkContextMenu :: TreeView -> CostCentreData -> ShowTree -> IO Menu
 mkContextMenu tree ccd showTree = do
   menu <- menuNew
-  mkItem menu "Test" $ do
+  mkMenuItem menu "Test" $ do
     withSelected tree $ \store selected -> do
       Just value <- fromGValue =<< treeModelGetValue store selected 1
       print (value :: T.Text)
 
-  mkItem menu "Focus" $ do
+  mkMenuItem menu "Focus" $ do
     withSelected tree $ \store selected -> do
       path <- getTruePath store selected
       Just idxs <- treePathGetIndices path
@@ -49,7 +41,7 @@ mkContextMenu tree ccd showTree = do
           let label = ccdLabel child
           showTree ("Focus: " <> label) child
 
-  mkItem menu "Group outgoing calls" $
+  mkMenuItem menu "Group outgoing calls" $
     withSelected tree $ \store selected -> do
       Just name <- fromGValue =<< treeModelGetValue store selected 1
       Just mod <- fromGValue =<< treeModelGetValue store selected 7

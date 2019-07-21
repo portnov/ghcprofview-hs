@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLabels #-}
 
 module Gui.Utils where
 
@@ -136,4 +137,12 @@ mkComboBox pairs = do
     comboBoxTextAppend combo (Just id) title
   comboBoxSetActive combo 0
   return combo
+
+mkMenuItem :: Menu -> T.Text -> MenuItemActivateCallback -> IO ()
+mkMenuItem menu label callback = do
+  item <- menuItemNewWithLabel label
+  menuShellAppend menu item
+  on item #activate callback
+  widgetShow item
+  return ()
 
