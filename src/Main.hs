@@ -11,6 +11,7 @@ import System.Environment
 import Operations
 import Loader
 import Gui.Page
+import Gui.Utils
 
 main :: IO ()
 main = do
@@ -30,7 +31,7 @@ main = do
   onWidgetDestroy window mainQuit
 
   -- Sets the border width of the window.
-  setContainerBorderWidth window 10
+--   setContainerBorderWidth window 10
   vbox <- boxNew OrientationVertical 0
 
   notebook <- notebookNew
@@ -39,8 +40,13 @@ main = do
   let showTree label ccd = do
         page <- pageWidget `fmap` mkPage status label ccd showTree
         widgetShowAll page
-        notebookAppendPage notebook page noWidget
-        notebookSetTabLabelText notebook page label
+        labelWidget <- mkTabLabelWidget label $ do
+                         n <- notebookGetNPages notebook
+                         if n == 1
+                           then mainQuit
+                           else notebookDetachTab notebook page
+        notebookAppendPage notebook page (Just labelWidget)
+        return ()
 
   showTree "All" treeData'
 

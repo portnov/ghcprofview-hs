@@ -141,3 +141,16 @@ mkMenuItem menu label callback = do
   widgetShow item
   return ()
 
+mkTabLabelWidget :: T.Text -> ButtonClickedCallback -> IO Box
+mkTabLabelWidget text callback = do
+    label <- labelNew (Just text)
+    let size = fromIntegral $ fromEnum IconSizeMenu
+    button <- buttonNewFromIconName (Just "window-close") size
+    on button #clicked callback
+    buttonSetRelief button ReliefStyleNone
+    box <- boxNew OrientationHorizontal 0
+    boxPackStart box label True True 0
+    boxPackStart box button False False 0
+    widgetShowAll box
+    return box
+
