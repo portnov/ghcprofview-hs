@@ -4,14 +4,17 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 module Gui.TreeWidget where
 
 import Control.Monad
 import qualified Data.Text as T
+import Data.Int
 
 import Data.GI.Base.GType
 import Data.GI.Base.GValue
+import Data.GI.Base.Signals
 import GI.Gtk 
 
 import Types
@@ -59,6 +62,11 @@ mkTreeView cfg@(TreeWidgetConfig columns) tree = do
 
     return view
   where
+    addColumn :: TreeView
+                   -> Int32
+                   -> ColumnType
+                   -> T.Text
+                   -> IO SignalHandlerId
     addColumn view i ctype title = do
       column <- treeViewColumnNew
       treeViewColumnSetTitle column title
@@ -81,7 +89,7 @@ mkTreeView cfg@(TreeWidgetConfig columns) tree = do
               return True
           else return False
 
-    withRenderer :: ColumnType -> (forall r. IsCellRenderer r => r -> IO x) -> IO x
+    withRenderer :: forall x. ColumnType -> (forall r. IsCellRenderer r => r -> IO Int32) -> IO Int32
     withRenderer TextColumn f = cellRendererTextNew >>= f
     withRenderer PercentColumn f = cellRendererProgressNew >>= f
 
