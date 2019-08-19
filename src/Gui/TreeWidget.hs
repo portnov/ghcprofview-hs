@@ -85,7 +85,7 @@ mkTreeView cfg@(TreeWidgetConfig columns) tree = do
         if button == 3
           then do
               menu <- mkColumnsMenu view
-              menuPopupAtPointer menu Nothing
+              menuPopup menu noWidget noWidget Nothing 3 =<< get ev #time
               return True
           else return False
 

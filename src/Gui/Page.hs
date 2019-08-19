@@ -198,7 +198,7 @@ mkPage status label ccd showTree = do
     button <- get ev #button
     when (button == 3) $ do
       menu <- mkContextMenu tree ccd showTree
-      menuPopupAtPointer menu Nothing
+      menuPopup menu noWidget noWidget Nothing 3 =<< get ev #time
     return False
 
   return $ Page vbox searchResults
