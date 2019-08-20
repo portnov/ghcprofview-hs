@@ -1,7 +1,14 @@
 .stack-work/
-gtk3test.cabal
 ghcprofview.cabal
 *.hi
 *.o
 *.swp
 *~
+docker/work
+docker/target
+docker/stack
+docker/build/
+debian/ghcprofview/
+debian/files
+debian/debhelper-build-stamp
+

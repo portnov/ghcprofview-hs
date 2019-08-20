@@ -1,0 +1,43 @@
+#!/usr/bin/make -f
+
+clean:
+	rm -rf debian/ghcprofview
+	rm -rf *.log
+	rm -rf *.cabal
+	stack clean --allow-different-user
+
+check:
+
+build-arch: build
+
+build:
+	stack build --allow-different-user
+
+override_dh_auto_build:
+	stack build --allow-different-user
+
+binary-arch: binary
+
+binary:
+	dh_clean
+	dh_testroot
+	dh_prep
+	dh_installdirs
+	dh_install
+	dh_installdocs
+	dh_installchangelogs
+	dh_installman
+	dh_installdebconf
+	dh_compress
+	dh_fixperms
+	dh_strip
+	dh_makeshlibs
+	dh_shlibdeps
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+%:
+	dh $@
+

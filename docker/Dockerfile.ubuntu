@@ -1,0 +1,15 @@
+FROM ubuntu
+MAINTAINER Ilya V. Portnov <portnov84@rambler.ru>
+
+RUN apt-get update -y && \
+    apt-get install -y ca-certificates curl unzip zlib1g-dev c2hs pkg-config libreadline-dev debhelper devscripts libgmp-dev alex happy libgtk-3-dev libgirepository-1.0-1 libgirepository1.0-dev gobject-introspection
+# Version of stack in ubuntu repos is too old.
+RUN curl -sSL https://get.haskellstack.org/ | sh
+RUN ln /usr/local/bin/stack /usr/bin/stack
+
+WORKDIR /src
+VOLUME /dst
+
+ADD debian-entrypoint.sh /
+
+CMD ["/bin/bash", "/debian-entrypoint.sh"]

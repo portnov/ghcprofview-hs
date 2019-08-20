@@ -1,0 +1,11 @@
+tar-ignore = .git 
+tar-ignore = .gitignore
+tar-ignore = .stack-work
+tar-ignore = debian
+tar-ignore = docker
+tar-ignore = test
+tar-ignore = *.tar.xz
+tar-ignore = *.cabal
+
+extend-diff-ignore = "(^|/)(\.git|\.gitignore|\.stack-work|debian|docker|test|.*tar.xz|.*cabal)"
+

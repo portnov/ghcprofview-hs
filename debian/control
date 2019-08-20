@@ -1,0 +1,21 @@
+Source: ghcprofview
+Maintainer: Ilya V . Portnov <portnov84@rambler.ru>
+Priority: optional
+Section: haskell
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.6
+Homepage: https://github.com/githubuser/ghcprofview-hs#readme
+X-Description:
+ Please see the README on GitHub at <https://github.com/githubuser/ghcprofview-hs#readme>
+
+Package: ghcprofview
+Architecture: any
+Section: misc
+Depends: ${shlibs:Depends}
+Description: GHC .prof files viewer, implemented in Haskell + Gtk3.
+  .
+  Unlike profiterole and profiteur, ghcprofview uses a traditional approach to
+  profiling. It allows you to view cost centres tree as it is and browse it
+  interactively, and allows you to do some actions that you may be used to in,
+  for example, Java's visualvm.
+
