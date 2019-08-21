@@ -75,6 +75,8 @@ mkPage status label ccd showTree = do
   vbox <- boxNew OrientationVertical 0
   searchHbox <- boxNew OrientationHorizontal 0
   filterBox <- boxNew OrientationHorizontal 0
+  filterSettingsBox <- flowBoxNew
+  flowBoxSetSelectionMode filterSettingsBox SelectionModeNone
 
   entry <- searchEntryNew
   boxPackStart searchHbox entry True True 0
@@ -93,27 +95,29 @@ mkPage status label ccd showTree = do
 
   on entry #activate $ buttonClicked searchButton
 
-  let addFilterPercent name = do
+  let mkEntry :: IsWidget w => T.Text -> w -> IO (Box, w)
+      mkEntry name widget = do
         lbl <- labelNew (Just name)
-        spin <- spinButtonNewWithRange 0 100 1
+        box <- boxNew OrientationHorizontal 0
+        boxPackStart box lbl False False 0
+        boxPackStart box widget True True 10
+        return (box, widget)
+
+  let addFilterPercent name = do
+        (box, spin) <- mkEntry name =<< spinButtonNewWithRange 0 100 1
         spinButtonSetDigits spin 2
-        boxPackStart filterBox lbl False False 10
-        boxPackStart filterBox spin True True 0
+        containerAdd filterSettingsBox box
         return spin
 
   let addFilterNumber name = do
-        lbl <- labelNew (Just name)
-        spin <- spinButtonNewWithRange 0 (1e38) 1
+        (box, spin) <- mkEntry name =<< spinButtonNewWithRange 0 (1e38) 1
         spinButtonSetDigits spin 0
-        boxPackStart filterBox lbl False False 10
-        boxPackStart filterBox spin True True 0
+        containerAdd filterSettingsBox box
         return spin
 
   let addFilterText name = do
-        lbl <- labelNew (Just name)
-        entry <- entryNew
-        boxPackStart filterBox lbl False False 10
-        boxPackStart filterBox entry True True 0
+        (box, spin) <- mkEntry name =<< entryNew
+        containerAdd filterSettingsBox box
         return entry
 
   fltrEntries <- addFilterNumber "Entries:"
@@ -126,6 +130,7 @@ mkPage status label ccd showTree = do
 
   filterButton <- buttonNewWithLabel "Filter"
 
+  boxPackStart filterBox filterSettingsBox True True 0
   boxPackStart filterBox filterButton False False 0
   boxPackStart vbox filterBox False False 0
 
