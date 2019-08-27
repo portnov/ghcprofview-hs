@@ -1,6 +1,8 @@
 ghcprofview README
 ==================
 
+[![Build Status](https://travis-ci.org/portnov/ghcprofview-hs.svg?branch=master)](https://travis-ci.org/portnov/ghcprofview-hs) 
+
 This is GHC `.prof` files viewer, implemented in Haskell + Gtk3.
 
 Unlike [profiterole][1] and [profiteur][2], `ghcprofview` uses a traditional
