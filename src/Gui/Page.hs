@@ -67,7 +67,7 @@ mkContextMenu tree ccd showTree = do
       let subtrees = ccdFindIncoming mod src name ccd
           result = ccdSum subtrees
       showTree ("Calls to " <> name) result
-      
+
   return menu
 
 mkPage :: Statusbar -> T.Text -> CostCentreData -> ShowTree -> IO Page
@@ -203,7 +203,7 @@ mkPage status label ccd showTree = do
     button <- get ev #button
     when (button == 3) $ do
       menu <- mkContextMenu tree ccd showTree
-      menuPopup menu noWidget noWidget Nothing 3 =<< get ev #time
+      menuPopupAtPointer menu Nothing
     return False
 
   return $ Page vbox searchResults

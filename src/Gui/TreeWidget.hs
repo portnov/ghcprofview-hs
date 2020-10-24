@@ -15,7 +15,7 @@ import Data.Int
 import Data.GI.Base.GType
 import Data.GI.Base.GValue
 import Data.GI.Base.Signals
-import GI.Gtk 
+import GI.Gtk
 
 import Types
 
@@ -50,7 +50,7 @@ mkTreeStore cfg tree = do
       forM_ (zip [0..] (twcColumns cfg)) $ \(i, column) ->
           treeStoreSetValue store item i =<< columnData column cc
       forM_ (treeChildren node) $ fill store (Just item)
-  
+
 mkTreeView :: forall t a . IsTree t a => TreeWidgetConfig a -> t -> IO TreeView
 mkTreeView cfg@(TreeWidgetConfig columns) tree = do
     srcStore <- mkTreeStore cfg tree
@@ -85,7 +85,7 @@ mkTreeView cfg@(TreeWidgetConfig columns) tree = do
         if button == 3
           then do
               menu <- mkColumnsMenu view
-              menuPopup menu noWidget noWidget Nothing 3 =<< get ev #time
+              menuPopupAtPointer menu Nothing
               return True
           else return False
 
