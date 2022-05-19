@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Types where
 
@@ -33,16 +34,19 @@ instance Show (RecordId a) where
   show (AggregatedId set) = show set
 
 instance IsGValue Int where
-  toGValue x = toGValue (fromIntegral x :: Int64)
-  fromGValue v = fromIntegral `fmap` (fromGValue v :: IO Int64)
+  gvalueGType_ = gvalueGType_ @Int64
+  gvalueSet_ ptr v = gvalueSet_ ptr (fromIntegral v :: Int64)
+  gvalueGet_ v = fromIntegral `fmap` (gvalueGet_ v :: IO Int64)
 
 instance IsGValue Integer where
-  toGValue x = toGValue (fromIntegral x :: Int64)
-  fromGValue v = fromIntegral `fmap` (fromGValue v :: IO Int64)
+  gvalueGType_ = gvalueGType_ @Int64
+  gvalueSet_ ptr v = gvalueSet_ ptr (fromIntegral v :: Int64)
+  gvalueGet_ v = fromIntegral `fmap` (gvalueGet_ v :: IO Int64)
 
 instance IsGValue Scientific where
-  toGValue x = toGValue (toRealFloat x :: Double)
-  fromGValue v = fromFloatDigits `fmap` (fromGValue v :: IO Double)
+  gvalueGType_ = gvalueGType_ @Double
+  gvalueSet_ ptr v = gvalueSet_ ptr (toRealFloat v :: Double)
+  gvalueGet_ v = fromFloatDigits `fmap` (gvalueGet_ v :: IO Double)
 
 data CostCentreData = CostCentreData {
     ccdProfile :: !Profile
