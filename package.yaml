@@ -29,7 +29,7 @@ dependencies:
 - regex-tdfa
 - ghc-prof
 - haskell-gi-base
-- gi-gtk
+- gi-gtk < 4
 
 executables:
   ghcprofview:
