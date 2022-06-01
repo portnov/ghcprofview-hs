@@ -1,5 +1,5 @@
 name:                ghcprofview
-version:             0.1.0.1
+version:             0.1.0.2
 github:              "portnov/ghcprofview-hs"
 license:             BSD3
 author:              "Ilya V. Portnov"
