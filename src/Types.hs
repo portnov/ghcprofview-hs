@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Types where
 
@@ -33,23 +34,26 @@ instance Show (RecordId a) where
   show (AggregatedId set) = show set
 
 instance IsGValue Int where
-  toGValue x = toGValue (fromIntegral x :: Int64)
-  fromGValue v = fromIntegral `fmap` (fromGValue v :: IO Int64)
+  gvalueGType_ = gvalueGType_ @Int64
+  gvalueSet_ ptr v = gvalueSet_ ptr (fromIntegral v :: Int64)
+  gvalueGet_ v = fromIntegral `fmap` (gvalueGet_ v :: IO Int64)
 
 instance IsGValue Integer where
-  toGValue x = toGValue (fromIntegral x :: Int64)
-  fromGValue v = fromIntegral `fmap` (fromGValue v :: IO Int64)
+  gvalueGType_ = gvalueGType_ @Int64
+  gvalueSet_ ptr v = gvalueSet_ ptr (fromIntegral v :: Int64)
+  gvalueGet_ v = fromIntegral `fmap` (gvalueGet_ v :: IO Int64)
 
 instance IsGValue Scientific where
-  toGValue x = toGValue (toRealFloat x :: Double)
-  fromGValue v = fromFloatDigits `fmap` (fromGValue v :: IO Double)
+  gvalueGType_ = gvalueGType_ @Double
+  gvalueSet_ ptr v = gvalueSet_ ptr (toRealFloat v :: Double)
+  gvalueGet_ v = fromFloatDigits `fmap` (gvalueGet_ v :: IO Double)
 
 data CostCentreData = CostCentreData {
-    ccdProfile :: ! Profile
+    ccdProfile :: !Profile
   , ccdParent :: Maybe CostCentreData
-  , ccdRecords :: ! [ProfileRecord Individual]
-  , ccdCostCentre :: ! CostCentre
-  , ccdChildren :: ! [CostCentreData]
+  , ccdRecords :: ![ProfileRecord Individual]
+  , ccdCostCentre :: !CostCentre
+  , ccdChildren :: ![CostCentreData]
   }
   deriving (Show)
 
@@ -58,23 +62,23 @@ instance IsTree CostCentreData CostCentreData where
   treeChildren = ccdChildren
 
 data CostCentre = CostCentre {
-    ccLabel :: ! T.Text
-  , ccId :: ! Id
-  , ccModule :: ! T.Text
-  , ccSource :: ! T.Text
-  , ccIsCaf :: ! Bool
+    ccLabel :: !T.Text
+  , ccId :: !Id
+  , ccModule :: !T.Text
+  , ccSource :: !T.Text
+  , ccIsCaf :: !Bool
   }
   deriving (Eq, Show)
 
 data ProfileRecord s = ProfileRecord {
-    prCcId :: ! (RecordId s)
-  , prEntries :: ! Integer
-  , prTicks :: ! (Maybe Integer)             -- ^ If present in input file
-  , prAlloc :: ! (Maybe Integer)             -- ^ If present in input file
-  , prTimeIndividual :: ! (Maybe Double) -- ^ If present in input file
-  , prAllocIndividual :: ! (Maybe Double) -- ^ If present in input file
-  , prTimeInherited :: ! (Maybe Double) -- ^ If present in input file
-  , prAllocInherited :: ! (Maybe Double) -- ^ If present in input file
+    prCcId :: !(RecordId s)
+  , prEntries :: !Integer
+  , prTicks :: !(Maybe Integer)             -- ^ If present in input file
+  , prAlloc :: !(Maybe Integer)             -- ^ If present in input file
+  , prTimeIndividual :: !(Maybe Double) -- ^ If present in input file
+  , prAllocIndividual :: !(Maybe Double) -- ^ If present in input file
+  , prTimeInherited :: !(Maybe Double) -- ^ If present in input file
+  , prAllocInherited :: !(Maybe Double) -- ^ If present in input file
   }
   deriving (Show)
 
@@ -86,13 +90,13 @@ listRecordId (ProfileRecord {prCcId = IndividualId id}) = [id]
 listRecordId (ProfileRecord {prCcId = AggregatedId set}) = IS.toList set
 
 data Profile = Profile {
-    profileProgram :: ! T.Text
-  , profileTotalTime :: ! Double
-  , profileRtsArguments :: ! [T.Text]
-  , profileInitCaps :: ! Int32
-  , profileTickInterval :: ! Int32
-  , profileTotalAlloc :: ! Integer
-  , profileTotalTicks :: ! Integer
+    profileProgram :: !T.Text
+  , profileTotalTime :: !Double
+  , profileRtsArguments :: ![T.Text]
+  , profileInitCaps :: !Int32
+  , profileTickInterval :: !Int32
+  , profileTotalAlloc :: !Integer
+  , profileTotalTicks :: !Integer
   , profileTree :: Tree (ProfileRecord Individual)
   , profileTreeMap :: IM.IntMap (Tree (ProfileRecord Individual))
   , profileCostCentres :: IM.IntMap CostCentre
