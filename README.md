@@ -74,3 +74,5 @@ Install it by `stack`:
     $ cd ghcprofview-hs/
     $ stack install
 
+Installing it by `nix-shell`:
+    $ nix-shell -p haskellPackages.ghcprofview
